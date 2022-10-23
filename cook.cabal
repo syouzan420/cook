@@ -26,6 +26,8 @@ source-repository head
 library
   exposed-modules:
       Lib
+      Mydata
+      Useful
   other-modules:
       Paths_cook
   hs-source-dirs:
