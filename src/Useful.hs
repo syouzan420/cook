@@ -8,7 +8,7 @@ getIndex t (x:xs) = if(t==x) then 0 else 1+(getIndex t xs)
 
 sepChar :: Char -> String -> [String]
 sepChar _ [] = []
-sepChar ch [x]    = if (x==ch) then [[]] else [[x]]
+sepChar ch (x:[])    = if (x==ch) then [[]] else [[x]]
 sepChar ch (x:xs) = if (x==ch) then [[]]++(hd:tl)
                                else [x:hd]++tl
                           where (hd:tl) = sepChar ch xs
@@ -50,17 +50,17 @@ chooseData h (x:xs) =
    in if ((take lh x)==h) then (drop lh x):(chooseData h xs) else chooseData h xs
 
 replCon :: Int -> a -> [a] -> [a]
-replCon id x y = take id y ++ [x] ++ drop (id+1) y 
+replCon i x y = take i y ++ [x] ++ drop (i+1) y 
 
 delCon :: Int -> [a] -> [a]
-delCon id y = take id y ++ drop (id+1) y 
+delCon i y = take i y ++ drop (i+1) y 
 
 dataSub :: Eq a => [a] -> [a] -> [a]
 dataSub org [] = org 
 dataSub org (t:ts) =
   let ie = elem t org
-      id = if ie then getIndex t org else (-1)
-   in if (id>(-1)) then dataSub (delCon id org) ts
+      i = if ie then getIndex t org else (-1)
+   in if (i>(-1)) then dataSub (delCon i org) ts
                    else dataSub org ts
 
 dataAdd :: Eq a => [a] -> [a] -> [a]
