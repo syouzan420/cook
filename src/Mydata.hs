@@ -6,7 +6,7 @@ type Pos = (Int, Int)
 
 type Na = [String]
 
-data Tree a =  Leaf a | Node (Tree a) (Tree a) | Em  deriving (Eq, Show)
+data Tr a = Lf a | Nd [Tr a] deriving (Eq, Show)
 
 data Mana = Mana T Y 
 
@@ -18,13 +18,12 @@ data Ta = Kaz
         | Dou
         | Zai Int Sta
         | Con Bool Ctp [Mana]
-        | Box Bool Btp (Tree Mana)
+        | Box Bool Btp [Mana]
         | Wts Pos Pos [Mana] [Mana] [Mana]
 
 instance Eq Ta where
   (==) (Con b1 c1 mns1) (Con b2 c2 mns2) = b1==b2 && c1==c2 && mNames mns1==mNames mns2
-  (==) (Box b1 bt1 tm1) (Box b2 bt2 tm2) = b1==b2 && bt1==bt2
-                                         && (mNames$flatten tm1)==(mNames$flatten tm2)
+  (==) (Box b1 bt1 mns1) (Box b2 bt2 mns2) = b1==b2 && bt1==bt2 && mNames mns1==mNames mns2
   (==) (Wts p11 p12 mns11 mns12 mns13) (Wts p21 p22 mns21 mns22 mns23) =
     p11==p21 && p12==p22 && mNames mns11==mNames mns21 && mNames mns12==mNames mns22 &&
       mNames mns13==mNames mns23
@@ -34,13 +33,11 @@ instance Eq Mana where
   (==) (Mana t1 _) (Mana t2 _) = t1 == t2
 
 instance Show Ta where
-  show (Zai i st) = "--ZAIRYOU*amount:"++(show i)++"*state:"++(show st)
-  show (Con b c mns) = "--Container*open:"++(show b)++"*type:"++(show c)
-                     ++"*contents:"++(mNames mns)
-  show (Box b bt tm) = "--Box*open:"++(show b)++"*type:"++(show bt)
-                     ++"*contents:"++(mNames$flatten tm)
-  show (Wts p1 p2 mns1 mns2 mns3) = "--Watasi*posFrom:"++(show p1)++"*posTo:"++(show p2)
-                     ++"*LHand:"++(mNames mns1)++"*RHand:"++(mNames mns2)++"*manas:"
+  show (Zai i st) = "--ZAI*am:"++(show i)++"*st:"++(show st)
+  show (Con b c mns) = "--CON*op:"++(show b)++"*tp:"++(show c)++"*con:"++(mNames mns)
+  show (Box b bt mns) = "--BOX*op:"++(show b)++"*tp:"++(show bt)++"*con:"++(mNames mns)
+  show (Wts p1 p2 mns1 mns2 mns3) = "--WTS*posFrom:"++(show p1)++"*posTo:"++(show p2)
+                     ++"*LH:"++(mNames mns1)++"*RH:"++(mNames mns2)++"*manas:"
                      ++(mNames mns3)
   show a          = show a
 
@@ -57,22 +54,26 @@ data Ctp =  Pa  |  Ho  |  Ba  |  Bo   deriving (Eq, Show)
 data Btp =  Re  |  Fr  |  Sh   deriving (Eq, Show)
 --      refridge,freezer,shelf
 
-reiT :: Tree Mana
-reiT = Node (Node (Leaf tamanegiP) (Em)) Em 
+data Dir =  Lt  |  Rt  |  Up  |  Dn   deriving (Eq, Show)
+
+reiT :: Tr Mana
+reiT = Nd [Nd [Nd []
+              ,Nd [Lf tamanegiP]]
+          ,Nd [Lf tamanegiP]] 
+
+reiL :: [Mana]
+reiL = flatten reiT
+
+flatten :: Tr a -> [a]
+flatten (Nd []) = []
+flatten (Nd (x:xs)) = flatten x ++ flatten (Nd xs)
+flatten (Lf a) = [a]
 
 mName :: Mana -> String
 mName (Mana (T na _) _) = head na 
 
 mNames :: [Mana] -> String
 mNames mns = joinChar ',' (map mName mns)
-
-getTa :: T -> Ta
-getTa (T _ ta) = ta
-
-flatten :: Tree a -> [a]
-flatten Em = []
-flatten (Leaf x) = [x]
-flatten (Node l r) = flatten l ++ flatten r
 
 rep :: Int -> a -> [a]
 rep = replicate
@@ -99,7 +100,7 @@ tamanegiP :: Mana
 tamanegiP = Mana (T ["tamanegi"] (Con False Pa (rep 4 tamanegi))) id
 
 reizouko :: Mana
-reizouko = Mana (T ["reizouko"] (Box False Re reiT)) id
+reizouko = Mana (T ["reizouko"] (Box False Re reiL)) id
 
 watasi :: Mana
 watasi = Mana (T ["watasi"] (Wts (2,1) (2,1) [] [] [])) id
