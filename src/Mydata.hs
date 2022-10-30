@@ -114,3 +114,5 @@ going t@(T na (Wts pfr _ l r mns)) =
       nps = searchRegion ds
    in if (ds=="") then t else T (init na) (Wts pfr nps l r mns)
 going a = id a
+
+
