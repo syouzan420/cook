@@ -8,13 +8,14 @@ type Na = [String]
 
 data Tr a = Lf a | Nd [Tr a] deriving (Eq, Show)
 
-data Mana = Mana T Y 
+data Mana = Mana T Y | Em
 
 data T = T Na Ta deriving (Eq, Show)
 
 type Y = T -> T -> T
 
 data Ta = Kaz 
+        | Moz
         | Dou
         | Zai Int Sta
         | Con Bool Ctp [Mana]
@@ -31,6 +32,7 @@ instance Eq Ta where
 
 instance Eq Mana where
   (==) (Mana t1 _) (Mana t2 _) = t1 == t2
+  (==) a b = a == b
 
 instance Show Ta where
   show (Zai i st) = "--ZAI*am:"++(show i)++"*st:"++(show st)
@@ -42,6 +44,7 @@ instance Show Ta where
   show a          = show a
 
 instance Show Mana where
+  show Em = "Empty"
   show (Mana t _) = show t
 
 
@@ -70,6 +73,7 @@ flatten (Nd (x:xs)) = flatten x ++ flatten (Nd xs)
 flatten (Lf a) = [a]
 
 mName :: Mana -> String
+mName Em = "Empty"
 mName (Mana (T na _) _) = head na 
 
 mNames :: [Mana] -> String
@@ -80,6 +84,15 @@ rep = replicate
 
 (.>) :: Mana -> Mana -> Mana
 (.>) (Mana t1 _) (Mana t2 y) = Mana (y t1 t2) doNothing 
+(.>) _ _ = Em
+
+getT :: Mana -> T
+getT Em = T [] Moz
+getT (Mana t _) = t
+
+getY :: Mana -> Y
+getY Em = doNothing
+getY (Mana _ y) = y
 
 regions :: [(String,Pos)]
 regions = [("reizouko",(2,3))]
@@ -102,10 +115,13 @@ reizouko :: Mana
 reizouko = Mana (T ["reizouko"] (Box False Re reiL)) addOrd 
 
 watasi :: Mana
-watasi = Mana (T ["watasi"] (Wts (2,1) (2,1) [] [] [])) doNothing 
+watasi = Mana (T ["watasi"] (Wts (2,1) (2,1) [] [] [reizouko])) doNothing 
 
 iku :: Mana
 iku = Mana (T ["iku"] Dou) going
+
+akeru :: Mana
+akeru = Mana (T ["akeru"] Dou) openY
 
 doNothing :: Y
 doNothing t _ = t
@@ -120,3 +136,29 @@ going t1 _ = t1
 addOrd :: Y
 addOrd (T na1 ta) (T na2 _) = T (na1++na2) ta
 
+openY :: Y
+openY t@(T na@(_:ord) (Wts pfr pto l r mns)) _ =
+  let ds = if (ord==[]) then "" else last ord
+      nps = searchRegion ds
+      iex = pfr == pto && pto == nps
+      tmn = if (ds=="" || iex==False) then Em else searchMana ds mns
+      nmn = if (tmn==Em) then Em else Mana (openT (getT tmn)) (getY tmn)
+      nmns = if (nmn==Em) then mns else replaceMana ds nmn mns
+   in if (nmn==Em) then t else (T na (Wts pfr pto l r nmns))
+openY t _ = t
+
+searchMana :: String -> [Mana] -> Mana
+searchMana _ [] = Em
+searchMana ds (m@(Mana (T na _) _):ms) = if (ds==head na) then m else searchMana ds ms
+searchMana ds (_:ms) = searchMana ds ms
+
+replaceMana :: String -> Mana -> [Mana] -> [Mana]
+replaceMana _ _ [] = [] 
+replaceMana ds nmn (m@(Mana (T na _) _):ms) =
+  if (ds==head na) then nmn:replaceMana ds nmn ms else m:replaceMana ds nmn ms
+replaceMana ds nmn (m:ms) = m:replaceMana ds nmn ms
+
+openT :: T -> T
+openT (T na (Con _ c mns)) = T na (Con True c mns)
+openT (T na (Box _ bt mns)) = T na (Box True bt mns)
+openT t = t
