@@ -12,7 +12,7 @@ data Mana = Mana T Y
 
 data T = T Na Ta deriving (Eq, Show)
 
-type Y = T -> T
+type Y = T -> T -> T
 
 data Ta = Kaz 
         | Dou
@@ -79,8 +79,7 @@ rep :: Int -> a -> [a]
 rep = replicate
 
 (.>) :: Mana -> Mana -> Mana
-(.>) (Mana t _) (Mana (T _ Dou) y) = Mana (y t) id
-(.>) (Mana (T na ta) _) (Mana (T ma _) _) = Mana (T (na++ma) ta) id
+(.>) (Mana t1 _) (Mana t2 y) = Mana (y t1 t2) doNothing 
 
 regions :: [(String,Pos)]
 regions = [("reizouko",(2,3))]
@@ -94,25 +93,30 @@ sarReg ((nm,pos):rs) str =
   if (nm==str) then pos else sarReg rs str
 
 tamanegi :: Mana
-tamanegi = Mana (T ["tamanegi"] (Zai 1 Ko)) id
+tamanegi = Mana (T ["tamanegi"] (Zai 1 Ko)) addOrd 
 
 tamanegiP :: Mana
-tamanegiP = Mana (T ["tamanegi"] (Con False Pa (rep 4 tamanegi))) id
+tamanegiP = Mana (T ["tamanegi"] (Con False Pa (rep 4 tamanegi))) addOrd 
 
 reizouko :: Mana
-reizouko = Mana (T ["reizouko"] (Box False Re reiL)) id
+reizouko = Mana (T ["reizouko"] (Box False Re reiL)) addOrd 
 
 watasi :: Mana
-watasi = Mana (T ["watasi"] (Wts (2,1) (2,1) [] [] [])) id
+watasi = Mana (T ["watasi"] (Wts (2,1) (2,1) [] [] [])) doNothing 
 
 iku :: Mana
 iku = Mana (T ["iku"] Dou) going
 
+doNothing :: Y
+doNothing t _ = t
+
 going :: Y
-going t@(T na (Wts pfr _ l r mns)) =
+going t@(T na (Wts pfr _ l r mns)) _ =
   let ds = if (length na<2) then "" else last na
       nps = searchRegion ds
    in if (ds=="") then t else T (init na) (Wts pfr nps l r mns)
-going a = id a
+going t1 _ = t1 
 
+addOrd :: Y
+addOrd (T na1 ta) (T na2 _) = T (na1++na2) ta
 
