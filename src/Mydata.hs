@@ -1,6 +1,6 @@
 module Mydata where
 
-import Useful(joinChar)
+import Useful(joinChar,replCon)
 
 type Pos = (Int, Int)
 
@@ -8,7 +8,7 @@ type Na = [String]
 
 data Tr a = Lf a | Nd [Tr a] deriving (Eq, Show)
 
-data Mana = Mana T Y | Em
+data Mana = Mana T Y
 
 data T = T Na Ta deriving (Eq, Show)
 
@@ -32,7 +32,6 @@ instance Eq Ta where
 
 instance Eq Mana where
   (==) (Mana t1 _) (Mana t2 _) = t1 == t2
-  (==) a b = a == b
 
 instance Show Ta where
   show (Zai i st) = "--ZAI*am:"++(show i)++"*st:"++(show st)
@@ -44,7 +43,6 @@ instance Show Ta where
   show a          = show a
 
 instance Show Mana where
-  show Em = "Empty"
   show (Mana t _) = show t
 
 
@@ -73,7 +71,6 @@ flatten (Nd (x:xs)) = flatten x ++ flatten (Nd xs)
 flatten (Lf a) = [a]
 
 mName :: Mana -> String
-mName Em = "Empty"
 mName (Mana (T na _) _) = head na 
 
 mNames :: [Mana] -> String
@@ -84,15 +81,15 @@ rep = replicate
 
 (.>) :: Mana -> Mana -> Mana
 (.>) (Mana t1 _) (Mana t2 y) = Mana (y t1 t2) doNothing 
-(.>) _ _ = Em
 
 getT :: Mana -> T
-getT Em = T [] Moz
 getT (Mana t _) = t
 
 getY :: Mana -> Y
-getY Em = doNothing
 getY (Mana _ y) = y
+
+getTY :: Mana -> (T,Y)
+getTY (Mana t y) = (t,y)
 
 regions :: [(String,Pos)]
 regions = [("reizouko",(2,3))]
@@ -104,6 +101,10 @@ sarReg :: [(String,Pos)] -> String -> Pos
 sarReg [] _ = ((-1),(-1))
 sarReg ((nm,pos):rs) str =
   if (nm==str) then pos else sarReg rs str
+
+manas :: [(String,Mana)]
+manas = [("tamanegi",tamanegi),("tamanegiP",tamanegiP),("reizouko",reizouko)
+        ,("watasi",watasi),("iku",iku),("akeru",akeru)]
 
 tamanegi :: Mana
 tamanegi = Mana (T ["tamanegi"] (Zai 1 Ko)) addOrd 
@@ -141,22 +142,16 @@ openY t@(T na@(_:ord) (Wts pfr pto l r mns)) _ =
   let ds = if (ord==[]) then "" else last ord
       nps = searchRegion ds
       iex = pfr == pto && pto == nps
-      tmn = if (ds=="" || iex==False) then Em else searchMana ds mns
-      nmn = if (tmn==Em) then Em else Mana (openT (getT tmn)) (getY tmn)
-      nmns = if (nmn==Em) then mns else replaceMana ds nmn mns
-   in if (nmn==Em) then t else (T na (Wts pfr pto l r nmns))
+      tmi = if (ds=="" || iex==False) then (-1) else searchMana ds mns
+      nmn = if (tmi==(-1) || tmi==length ds) then mns 
+                                             else let (tt,ty) = getTY (mns!!tmi)
+                                                   in replCon tmi (Mana (openT tt) ty) mns
+   in if (tmi==(-1)) then t else (T na (Wts pfr pto l r nmn))
 openY t _ = t
 
-searchMana :: String -> [Mana] -> Mana
-searchMana _ [] = Em
-searchMana ds (m@(Mana (T na _) _):ms) = if (ds==head na) then m else searchMana ds ms
-searchMana ds (_:ms) = searchMana ds ms
-
-replaceMana :: String -> Mana -> [Mana] -> [Mana]
-replaceMana _ _ [] = [] 
-replaceMana ds nmn (m@(Mana (T na _) _):ms) =
-  if (ds==head na) then nmn:replaceMana ds nmn ms else m:replaceMana ds nmn ms
-replaceMana ds nmn (m:ms) = m:replaceMana ds nmn ms
+searchMana :: String -> [Mana] -> Int 
+searchMana _ [] = 0 
+searchMana ds ((Mana (T na _) _):ms) = if (ds==head na) then 0 else 1+searchMana ds ms
 
 openT :: T -> T
 openT (T na (Con _ c mns)) = T na (Con True c mns)
