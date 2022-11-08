@@ -35,10 +35,11 @@ exeCom com w =
    in foldl (.>) (Just w) mns 
 
 doWTime :: Mana -> Mana
-doWTime (Mana t@(T na (Wts pfr pto l r mns)) y) = 
+doWTime (Mana t@(T na (Wts pfr pto l r mns _)) y) = 
   if (pfr==pto) then Mana t y
                 else let pfr' = moving pfr pto
-                      in Mana (T na (Wts pfr' pto l r mns)) y
+                         rc' = posToRch pfr'
+                      in Mana (T na (Wts pfr' pto l r mns rc')) y
 doWTime mn = mn
 
 moving :: Pos -> Pos -> Pos
@@ -50,8 +51,8 @@ moving (x1,y1) (x2,y2)
   |otherwise = (x1, y1)
 
 showW :: Mana -> String
-showW m@(Mana (T _ (Wts _ _ _ _ mns)) _) = 
-  show m ++"\n" ++ concat (map (\mn -> show mn ++ "\n") mns)
+showW m@(Mana (T _ (Wts _ _ _ _ mns rc)) _) = 
+  show m ++"\n" ++ concat (map (\mn -> show mn ++ "\n") mns) ++"reachable:"++show rc ++ "\n"
 showW m = show m
 
 timerR :: IORef Mana -> IO ()
