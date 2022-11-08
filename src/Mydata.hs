@@ -1,6 +1,6 @@
 module Mydata where
 
-import Useful(joinChar,replCon)
+import Useful(joinChar,replCon,getIndex)
 
 type Pos = (Int, Int)
 
@@ -79,8 +79,9 @@ mNames mns = joinChar ',' (map mName mns)
 rep :: Int -> a -> [a]
 rep = replicate
 
-(.>) :: Mana -> Mana -> Mana
-(.>) (Mana t1 _) (Mana t2 y) = Mana (y t1 t2) doNothing 
+(.>) :: Maybe Mana -> Maybe Mana -> Maybe Mana
+(.>) (Just (Mana t1 _)) (Just (Mana t2 y)) = Just (Mana (y t1 t2) doNothing)
+(.>) _ _ = Nothing
 
 getT :: Mana -> T
 getT (Mana t _) = t
@@ -105,6 +106,12 @@ sarReg ((nm,pos):rs) str =
 manas :: [(String,Mana)]
 manas = [("tamanegi",tamanegi),("tamanegiP",tamanegiP),("reizouko",reizouko)
         ,("watasi",watasi),("iku",iku),("akeru",akeru)]
+
+toMana :: String -> Maybe Mana
+toMana str =
+  let (s,m) = unzip manas
+      i = if (elem str s) then getIndex str s else (-1)
+   in if (i==(-1)) then Nothing else Just (m!!i)
 
 tamanegi :: Mana
 tamanegi = Mana (T ["tamanegi"] (Zai 1 Ko)) addOrd 
