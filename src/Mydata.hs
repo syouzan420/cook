@@ -76,9 +76,6 @@ getRch (T _ (Con _ _ mns)) = map mName mns
 getRch (T _ (Box _ _ mnt)) = getFStr [] mnt
 getRch _ = []
 
---reiL :: [Mana]
---reiL = flatten reiT
-
 flatten :: Tr a -> [a]
 flatten (Nd _ []) = []
 flatten (Nd _ (x:y:[])) = flatten x ++ flatten y 
