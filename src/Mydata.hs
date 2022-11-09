@@ -1,4 +1,5 @@
-module Mydata(Pos,Rch,Mana(..),T(..),Ta(Wts),(.>),manas,watasi,toMana,posToRch) where
+module Mydata(Pos,Rch,Mana(..),T(..),Ta(Wts),(.>),manas,watasi,toMana,posToRch
+             ,reiT,flatten,getFStr) where
 
 import Useful(joinChar,replCon,getIndex)
 
@@ -8,7 +9,7 @@ type Rch = [String] -- reachable
 
 type Na = [String]
 
-data Tr a = Lf a | Nd [Tr a] deriving (Eq, Show)
+data Tr a = Nd a [Tr a] deriving (Eq, Show)
 
 data Mana = Mana T Y
 
@@ -17,14 +18,15 @@ data T = T Na Ta deriving (Eq, Show)
 type Y = T -> T -> T
 
 data Ta = Dou
+        | Pla
         | Zai Int Sta
         | Con Bool Ctp [Mana]
-        | Box Bool Btp [Mana]
+        | Box Bool Btp (Tr Mana)
         | Wts Pos Pos [Mana] [Mana] [Mana] Rch
 
 instance Eq Ta where
   (==) (Con b1 c1 mns1) (Con b2 c2 mns2) = b1==b2 && c1==c2 && mNames mns1==mNames mns2
-  (==) (Box b1 bt1 mns1) (Box b2 bt2 mns2) = b1==b2 && bt1==bt2 && mNames mns1==mNames mns2
+  (==) (Box b1 bt1 mnt1) (Box b2 bt2 mnt2) = b1==b2 && bt1==bt2 && mnt1==mnt2
   (==) (Wts p11 p12 mns11 mns12 mns13 rc1) (Wts p21 p22 mns21 mns22 mns23 rc2) =
     p11==p21 && p12==p22 && mNames mns11==mNames mns21 && mNames mns12==mNames mns22 &&
       mNames mns13==mNames mns23 && rc1==rc2
@@ -36,7 +38,7 @@ instance Eq Mana where
 instance Show Ta where
   show (Zai i st) = "--ZAI*am:"++(show i)++"*st:"++(show st)
   show (Con b c mns) = "--CON*op:"++(show b)++"*tp:"++(show c)++"*con:"++(mNames mns)
-  show (Box b bt mns) = "--BOX*op:"++(show b)++"*tp:"++(show bt)++"*con:"++(mNames mns)
+  show (Box b bt mnt) = "--BOX*op:"++(show b)++"*tp:"++(show bt)++"*con:"++(show$mNames$flatten mnt)
   show (Wts p1 p2 mns1 mns2 mns3 rc) = "--WTS*posFrom:"++(show p1)++"*posTo:"++(show p2)
                      ++"*LH:"++(mNames mns1)++"*RH:"++(mNames mns2)++"*mns:"
                      ++(mNames mns3)++"*rch:"++(joinChar ',' rc)
@@ -58,17 +60,29 @@ data Btp =  Re  |  Fr  |  Sh   deriving (Eq, Show)
 data Dir =  Lt  |  Rt  |  Up  |  Dn   deriving (Eq, Show)
 
 reiT :: Tr Mana
-reiT = Nd [Nd [Nd []
-              ,Nd [Lf tamanegiP]]
-          ,Nd []] 
+reiT = Nd miki [Nd ue [] 
+               ,Nd sita [Nd hidari [Nd tamanegiP []]
+                        ,Nd migi []]]
 
-reiL :: [Mana]
-reiL = flatten reiT
+getFStr :: [String] -> Tr Mana -> [String]
+getFStr [] (Nd _ ts) = map (\(Nd mn _) -> mName mn) ts
+getFStr (str:xs) t@(Nd _ as)
+    |str=="ue" || str=="hidari" = getFStr xs (as!!0)
+    |str=="sita" || str=="migi" = getFStr xs (as!!1)
+    |otherwise = getFStr xs t
+
+getRch :: T -> [String]
+getRch (T _ (Con _ _ mns)) = map mName mns
+getRch (T _ (Box _ _ mnt)) = getFStr [] mnt
+getRch _ = []
+
+--reiL :: [Mana]
+--reiL = flatten reiT
 
 flatten :: Tr a -> [a]
-flatten (Nd []) = []
-flatten (Nd (x:xs)) = flatten x ++ flatten (Nd xs)
-flatten (Lf a) = [a]
+flatten (Nd _ []) = []
+flatten (Nd _ (x:y:[])) = flatten x ++ flatten y 
+flatten (Nd _ b) = map (\(Nd mn _) -> mn) b 
 
 mName :: Mana -> String
 mName (Mana (T na _) _) = head na 
@@ -104,7 +118,8 @@ sarReg ((nm,pos):rs) str =
 
 manas :: [(String,Mana)]
 manas = [("tamanegi",tamanegi),("tamanegiP",tamanegiP),("reizouko",reizouko)
-        ,("watasi",watasi),("iku",iku),("akeru",akeru)]
+        ,("watasi",watasi),("hidari",hidari),("migi",migi)
+        ,("ue",ue),("sita",sita),("iku",iku),("akeru",akeru)]
 
 toMana :: String -> Maybe Mana
 toMana str =
@@ -119,10 +134,25 @@ tamanegiP :: Mana
 tamanegiP = Mana (T ["tamanegi"] (Con False Pa (rep 4 tamanegi))) addOrd 
 
 reizouko :: Mana
-reizouko = Mana (T ["reizouko"] (Box False Re reiL)) addOrd 
+reizouko = Mana (T ["reizouko"] (Box False Re reiT)) addOrd 
 
 watasi :: Mana
 watasi = Mana (T ["watasi"] (Wts (2,1) (2,1) [] [] [reizouko] [])) doNothing 
+
+miki :: Mana
+miki = Mana (T ["miki"] Pla) addOrd
+
+hidari :: Mana
+hidari = Mana (T ["hidari"] Pla) newRch 
+
+migi :: Mana
+migi = Mana (T ["migi"] Pla) newRch 
+
+ue :: Mana
+ue = Mana (T ["ue"] Pla) newRch 
+
+sita :: Mana
+sita = Mana (T ["sita"] Pla) newRch 
 
 iku :: Mana
 iku = Mana (T ["iku"] Dou) going
@@ -148,11 +178,28 @@ openY t@(T na@(_:ord) (Wts pfr pto l r mns rc)) _ =
   let ds = if (ord==[]) then "" else last ord
       iex = elem ds rc 
       tmi = if (ds=="" || iex==False) then (-1) else searchMana ds mns
-      nmn = if (tmi==(-1) || tmi==length ds) then mns 
-                                             else let (tt,ty) = getTY (mns!!tmi)
-                                                   in replCon tmi (Mana (openT tt) ty) mns
-   in if (tmi==(-1)) then t else (T (init na) (Wts pfr pto l r nmn rc))
+      (nmn,nrc) = if (tmi==(-1) || tmi==length ds) then (mns,rc) 
+                      else let (tt,ty) = getTY (mns!!tmi)
+                               rc' = getRch tt
+                            in (replCon tmi (Mana (openT tt) ty) mns,rc')
+   in if (tmi==(-1)) then t else (T (na++["miki"]) (Wts pfr pto l r nmn nrc))
 openY t _ = t
+
+newRch :: Y
+newRch t@(T na@(_:ord) (Wts pfr pto l r mns rc)) (T na2 _) =
+  if (elem (head na2) rc) then
+    let ths = sepEL "miki" ord 
+        ds = last$take (length ord - length ths - 1) ord
+        tmi = searchMana ds mns
+        nrc = let (tt,_) = getTY (mns!!tmi)
+               in  getFStr (ths++na2) (getMnT tt)
+     in T (na++na2) (Wts pfr pto l r mns nrc)
+                         else t
+newRch t _ = t
+
+getMnT :: T -> Tr Mana
+getMnT (T _ (Box _ _ mnt)) = mnt
+getMnT _ = Nd miki []
 
 searchMana :: String -> [Mana] -> Int 
 searchMana _ [] = 0 
@@ -160,5 +207,9 @@ searchMana ds ((Mana (T na _) _):ms) = if (ds==head na) then 0 else 1+searchMana
 
 openT :: T -> T
 openT (T na (Con _ c mns)) = T na (Con True c mns)
-openT (T na (Box _ bt mns)) = T na (Box True bt mns)
+openT (T na (Box _ bt mnt)) = T na (Box True bt mnt)
 openT t = t
+
+sepEL :: Eq a => a -> [a] -> [a]
+sepEL _ [] = []
+sepEL e (x:xs) = if (e==x) then xs else sepEL e xs 
