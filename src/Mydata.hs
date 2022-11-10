@@ -125,10 +125,10 @@ toMana str =
    in if (i==(-1)) then Nothing else Just (m!!i)
 
 tamanegi :: Mana
-tamanegi = Mana (T ["tamanegi"] (Zai 1 Ko)) addOrd 
+tamanegi = Mana (T ["tamanegi"] (Zai 1 Ko)) addOrdR
 
 tamanegiP :: Mana
-tamanegiP = Mana (T ["tamanegi"] (Con False Pa (rep 4 tamanegi))) addOrd 
+tamanegiP = Mana (T ["tamanegi"] (Con False Pa (rep 4 tamanegi))) addOrdR
 
 reizouko :: Mana
 reizouko = Mana (T ["reizouko"] (Box False Re reiT)) addOrd 
@@ -169,6 +169,11 @@ going t1 _ = t1
 
 addOrd :: Y
 addOrd (T na1 ta) (T na2 _) = T (na1++na2) ta
+
+addOrdR :: Y
+addOrdR t@(T na ta@(Wts _ _ _ _ _ rc)) (T na2 _) =
+  if(elem (head na2) rc) then T (na++na2) ta else t
+addOrdR t _ = t
 
 openY :: Y
 openY t@(T na@(_:ord) (Wts pfr pto l r mns rc)) _ =
