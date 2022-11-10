@@ -1,4 +1,4 @@
-module Useful(getIndex,joinChar,sepChar,replCon) where
+module Useful(getIndex,joinChar,sepChar,replCon,sepEL,iniEL) where
 
 --import Data.Char(isDigit)
 
@@ -79,3 +79,10 @@ replCon i x y = take i y ++ [x] ++ drop (i+1) y
 --   in if ie then dataAdd org ts
 --            else dataAdd (org++[t]) ts
 
+sepEL :: Eq a => a -> [a] -> [a]
+sepEL _ [] = []
+sepEL e (x:xs) = if (e==x) then xs else sepEL e xs 
+
+iniEL :: Eq a => a -> [a] -> [a]
+iniEL _ [] = []
+iniEL e (x:xs) = if (e==x) then [x] else x:iniEL e xs

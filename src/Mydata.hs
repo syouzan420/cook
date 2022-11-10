@@ -1,7 +1,7 @@
 module Mydata(Pos,Rch,Mana(..),T(..),Ta(Wts),(.>),manas,watasi,toMana,posToRch
              ,reiT,flatten,getFStr) where
 
-import Useful(joinChar,replCon,getIndex)
+import Useful(joinChar,replCon,getIndex,sepEL,iniEL)
 
 type Pos = (Int, Int)
 
@@ -115,7 +115,7 @@ sarReg ((nm,pos):rs) str =
 
 manas :: [(String,Mana)]
 manas = [("tamanegi",tamanegi),("tamanegiP",tamanegiP),("reizouko",reizouko)
-        ,("watasi",watasi),("hidari",hidari),("migi",migi)
+        ,("watasi",watasi),("miki",miki),("hidari",hidari),("migi",migi)
         ,("ue",ue),("sita",sita),("iku",iku),("akeru",akeru)]
 
 toMana :: String -> Maybe Mana
@@ -137,7 +137,7 @@ watasi :: Mana
 watasi = Mana (T ["watasi"] (Wts (2,1) (2,1) [] [] [reizouko] [])) doNothing 
 
 miki :: Mana
-miki = Mana (T ["miki"] Pla) addOrd
+miki = Mana (T ["miki"] Pla) newRch 
 
 hidari :: Mana
 hidari = Mana (T ["hidari"] Pla) newRch 
@@ -188,14 +188,19 @@ openY t@(T na@(_:ord) (Wts pfr pto l r mns rc)) _ =
 openY t _ = t
 
 newRch :: Y
-newRch t@(T na@(_:ord) (Wts pfr pto l r mns rc)) (T na2 _) =
-  if (elem (head na2) rc) then
-    let ths = sepEL "miki" ord 
-        ds = last$take (length ord - length ths - 1) ord
+newRch t@(T (n:ord) (Wts pfr pto l r mns rc)) (T na2 _) =
+  let tg = head na2
+      ism = elem tg ord
+      ord' = if ism then iniEL tg ord else ord 
+   in if(elem tg rc) then
+    let ths = sepEL "miki" ord' 
+        ds = last$take (length ord' - length ths - 1) ord'
         tmi = searchMana ds mns
+        addr = if ism then [] else ["miki"]
         nrc = let (tt,_) = getTY (mns!!tmi)
-               in  getFStr (ths++na2) (getMnT tt)
-     in T (na++na2) (Wts pfr pto l r mns nrc)
+               in addr++getFStr (ths++na2) (getMnT tt)
+        na2' = if ism then [] else na2
+     in T ([n]++ord'++na2') (Wts pfr pto l r mns nrc)
                          else t
 newRch t _ = t
 
@@ -212,6 +217,3 @@ openT (T na (Con _ c mns)) = T na (Con True c mns)
 openT (T na (Box _ bt mnt)) = T na (Box True bt mnt)
 openT t = t
 
-sepEL :: Eq a => a -> [a] -> [a]
-sepEL _ [] = []
-sepEL e (x:xs) = if (e==x) then xs else sepEL e xs 
